@@ -76,7 +76,7 @@ class PN_Selector {
 			}
 		}
 
-		if (!empty($index)) {
+		if (empty($index)) {
 			return $index;
 		}
 
