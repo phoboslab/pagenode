@@ -496,10 +496,10 @@ class PN_ParsedownSyntaxHighlight extends Parsedown {
 					$id = '<r'.count($tokens).'>';
 					$block = $m[1];
 
-					if ($block{0} === '&' || $block{0} === "'") {
+					if ($block[0] === '&' || $block[0] === "'") {
 						$type = 'string';
 					}
-					else if ($block{0} === '<') {
+					else if ($block[0]} === '<') {
 						$type = 'regexp';
 					}
 					else {
