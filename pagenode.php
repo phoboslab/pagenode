@@ -546,7 +546,7 @@ class PN_ParsedownSyntaxHighlight extends Parsedown {
 			// Make the bold assumption that an all uppercase word has a 
             // special meaning
 			'/(?<!\w|\$|>)(
-				[A-Z_0-9]{2,}
+				[A-Z_][A-Z_0-9]+
 			)(?!\w)/x'
 				  => '<span class="def">$1</span>'
 		];
