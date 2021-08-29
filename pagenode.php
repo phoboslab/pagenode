@@ -499,7 +499,7 @@ class PN_ParsedownSyntaxHighlight extends Parsedown {
 					if ($block[0] === '&' || $block[0] === "'") {
 						$type = 'string';
 					}
-					else if ($block[0]} === '<') {
+					else if ($block[0] === '<') {
 						$type = 'regexp';
 					}
 					else {
