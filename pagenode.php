@@ -245,7 +245,7 @@ class PN_Selector {
 				? array_map('trim', explode(',', $params['tags']))
 				: $params['tags'];
 			$index = array_filter($index, function($n) use ($tags) {
-				return !array_diff($tags, $n['tags']);
+				return !array_udiff($tags, $n['tags'], 'strcasecmp');
 			});
 		}
 
