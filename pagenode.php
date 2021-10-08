@@ -144,9 +144,22 @@ class PN_Selector {
 		$meta = [];
 		$file = file_get_contents($path);
 		if (preg_match('/(.*?)^---\s*$/ms', $file, $metaSection)) {
-			preg_match_all('/^(\w+):(.*)$/m', $metaSection[1], $metaAttribs);
-			foreach ($metaAttribs[1] as $i => $key) {
-				$meta[$key] = trim($metaAttribs[2][$i]);
+			preg_match_all('/^(bool|int|float|string|array)?\s?(\w+):(.*)$/m', $metaSection[1], $metaAttribs);
+			foreach($metaAttribs[2] as $i => $key){
+				$val = trim($metaAttribs[3][$i]);
+				switch($metaAttribs[1][$i]){
+					case 'bool':
+						$val = $val === 'true' ? true : false; break;
+					case 'int':
+						$val = (int) $val; break;
+					case 'float':
+						$val = (float) $val; break;
+					case 'array':
+						$val = explode(',', $val); break;
+					default:
+						break;
+				}
+				$meta[$key] = $val;
 			}
 		}
 		
@@ -400,7 +413,7 @@ class PN_Node {
 			return $this->body;
 		}
 		else if (isset($this->meta[$name])) {
-			return $this->raw
+			return $this->raw || !is_string($this->meta[$name])
 				? $this->meta[$name] 
 				: htmlSpecialChars($this->meta[$name]);
 		}
