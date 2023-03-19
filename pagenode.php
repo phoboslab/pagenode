@@ -167,7 +167,7 @@ class PN_Selector {
 			$m = $dateMatch[2];
 			$d = $dateMatch[3];
 			$h = !empty($dateMatch[5]) ? $dateMatch[5] : 0;
-			$i = !empty($dateMatch[6]) ? $dateMatch[5] : 0;
+			$i = !empty($dateMatch[6]) ? $dateMatch[6] : 0;
 			$meta['date'] = mktime($h, $i, 0, $m, $d, $y);
 		}
 		else {
