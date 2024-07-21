@@ -61,7 +61,7 @@ class PN_Selector {
 			echo 'select("'.htmlSpecialChars($path).'") does not exist.';
 			exit();
 		}
-		$this->indexPath = 
+		$this->indexPath =
 			(PN_CACHE_INDEX_PATH ?? sys_get_temp_dir()).
 			'/pagenode-index-'.md5($this->path).'.json';
 	}
@@ -131,7 +131,7 @@ class PN_Selector {
 				'indexPath' => $this->indexPath,
 				'ms' => round((microtime(true) - $timeStart)*1000, 3),
 				'didRebuild' => (int)$didRebuild,
-				'cacheMethod' => PN_CACHE_USE_INDICATOR_FILE 
+				'cacheMethod' => PN_CACHE_USE_INDICATOR_FILE
 					? 'INDICATOR_FILE'
 					: 'NODE_LAST_MODIFIED'
 			];
@@ -141,42 +141,7 @@ class PN_Selector {
 	}
 
 	protected function loadMetaFromFile($path) {
-		$meta = [];
-		$file = file_get_contents($path);
-		if (preg_match('/(.*?)^---\s*$/ms', $file, $metaSection)) {
-			preg_match_all('/^(\w+):(.*)$/m', $metaSection[1], $metaAttribs);
-			foreach ($metaAttribs[1] as $i => $key) {
-				$meta[$key] = trim($metaAttribs[2][$i]);
-			}
-		}
-		
-		$meta['tags'] = !empty($meta['tags'])
-			? array_map('trim', explode(',', $meta['tags']))
-			: [];
-		
-		
-		if (
-			!empty($meta['date']) &&
-			preg_match(
-				'/(\d{4})[\.\-](\d{2})[\.\-](\d{2})( (\d{2}):(\d{2}))?/',
-				$meta['date'],
-				$dateMatch
-			)
-		) {
-			$y = $dateMatch[1];
-			$m = $dateMatch[2];
-			$d = $dateMatch[3];
-			$h = !empty($dateMatch[5]) ? $dateMatch[5] : 0;
-			$i = !empty($dateMatch[6]) ? $dateMatch[6] : 0;
-			$meta['date'] = mktime($h, $i, 0, $m, $d, $y);
-		}
-		else {
-			$meta['date'] = filemtime($path);
-		}
-
-		$meta['active'] = empty($meta['active']) || $meta['active'] !== 'false';
-
-		return $meta;
+		return PN_FileReader::ReadMeta($path);
 	}
 
 
@@ -241,7 +206,7 @@ class PN_Selector {
 		// Filter by tags. Only return nodes that match all given tags.
 
 		if (!empty($params['tags'])) {
-			$tags = !is_array($params['tags']) 
+			$tags = !is_array($params['tags'])
 				? array_map('trim', explode(',', $params['tags']))
 				: $params['tags'];
 			$index = array_filter($index, function($n) use ($tags) {
@@ -288,17 +253,15 @@ class PN_Selector {
 				});
 			}
 		}
-		
 
 		// Keep track of the total nodes found with the given filter params
 
 		self::$FoundNodes = count($index);
-		
 
 		// Slice and Paginate
 
 		if ($count) {
-			$offset = ($params['page'] ?? 0) * $count;			
+			$offset = ($params['page'] ?? 0) * $count;
 			$index = array_slice($index, $offset, $count, true);
 		}
 
@@ -372,11 +335,7 @@ class PN_Node {
 
 	protected function loadBody() {
 		self::$DebugOpenedNodes[] = $this->path;
-		$file = file_get_contents($this->path);
-
-		$markdown = (preg_match('/^---\s*$(.*)/ms', $file, $m))
-			? $m[1]
-			: $file;
+		$markdown = PN_FileReader::ReadContent($this->path);
 
 		if ($this->raw) {
 			return $markdown;
@@ -401,7 +360,7 @@ class PN_Node {
 		}
 		else if (isset($this->meta[$name])) {
 			return $this->raw
-				? $this->meta[$name] 
+				? $this->meta[$name]
 				: htmlSpecialChars($this->meta[$name]);
 		}
 
@@ -409,6 +368,68 @@ class PN_Node {
 	}
 }
 
+class PN_FileReader
+{
+	public static function ReadMeta($path)
+	{
+		return self::ReadFile($path)[0];
+	}
+
+	public static function ReadContent($path)
+	{
+		return self::ReadFile($path)[1];
+	}
+
+	private static function ReadFile($path)
+	{
+		$meta = [];
+		$file = file_get_contents($path);
+
+		$lines = preg_split('/\R/', $file);
+
+		if ($lines[0] === '---') {
+			array_shift($lines);
+			$file = implode("\n", $lines);
+		}
+
+		if (preg_match('/(.*?)^---\s*$/ms', $file, $metaSection)) {
+			preg_match_all('/^(\w+):(.*)$/m', $metaSection[1], $metaAttribs);
+			foreach ($metaAttribs[1] as $i => $key) {
+				$meta[$key] = trim($metaAttribs[2][$i]);
+			}
+		}
+
+		$meta['tags'] = !empty($meta['tags'])
+			? array_map('trim', explode(',', $meta['tags']))
+			: [];
+
+		if (
+			!empty($meta['date']) &&
+			preg_match(
+				'/(\d{4})[\.\-](\d{2})[\.\-](\d{2})( (\d{2}):(\d{2}))?/',
+				$meta['date'],
+				$dateMatch
+			)
+		) {
+			$y = $dateMatch[1];
+			$m = $dateMatch[2];
+			$d = $dateMatch[3];
+			$h = !empty($dateMatch[5]) ? $dateMatch[5] : 0;
+			$i = !empty($dateMatch[6]) ? $dateMatch[6] : 0;
+			$meta['date'] = mktime($h, $i, 0, $m, $d, $y);
+		} else {
+			$meta['date'] = filemtime($path);
+		}
+
+		$meta['active'] = empty($meta['active']) || $meta['active'] !== 'false';
+
+		$markdown = (preg_match('/^---\s*$(.*)/ms', $file, $m))
+			? $m[1]
+			: $file;
+
+		return [$meta, $markdown];
+	}
+}
 
 // -----------------------------------------------------------------------------
 // Router Class - handles routes and dispatch
@@ -440,13 +461,13 @@ class PN_Router {
 
 	public static function Resolve($resolver, $regexpMatch, $recurse = true) {
 		$params = array_filter($regexpMatch, function($key) {
-			return !is_int($key); 
+			return !is_int($key);
 		}, ARRAY_FILTER_USE_KEY);
 
 		if (call_user_func_array($resolver, $params) !== false) {
 			return true;
 		};
-		
+
 		return self::ErrorNotFound($recurse);
 	}
 
@@ -543,7 +564,7 @@ class PN_ParsedownSyntaxHighlight extends Parsedown {
 			)(?!\w)/ix'
 				=> '<span class="var">$1</span>',
 
-			// Make the bold assumption that an all uppercase word has a 
+			// Make the bold assumption that an all uppercase word has a
             // special meaning
 			'/(?<!\w|\$|>)(
 				[A-Z_][A-Z_0-9]+
@@ -572,7 +593,7 @@ class PN_ParsedownSyntaxHighlight extends Parsedown {
 		if (empty($class) || !preg_match($re, $class)) {
 			return $Block;
 		}
-		
+
 		$text = $Block['element']['element']['text'];
 		unset($Block['element']['element']['text']);
 		$Block['element']['element']['rawHtml'] = self::SyntaxHighlight($text);
@@ -629,8 +650,8 @@ function reroute($source, $target) {
 }
 
 function redirect($path = '/', $params = []) {
-	$query = !empty($params) 
-		? '?'.http_build_query($params) 
+	$query = !empty($params)
+		? '?'.http_build_query($params)
 		: '';
 	header('Location: '.$path.$query);
 	exit();
@@ -665,9 +686,9 @@ function printDebugInfo() {
 if (defined('PN_JSON_API_PATH')) {
 	route(PN_JSON_API_PATH, function(){
 		$nodes = select($_GET['path'] ?? '')->query(
-			$_GET['sort'] ?? 'date', 
-			$_GET['order'] ?? 'desc', 
-			$_GET['count'] ?? 0, 
+			$_GET['sort'] ?? 'date',
+			$_GET['order'] ?? 'desc',
+			$_GET['count'] ?? 0,
 			[
 				'keyword' => $_GET['keyword'] ?? null,
 				'date' => $_GET['date'] ?? null,
@@ -678,7 +699,7 @@ if (defined('PN_JSON_API_PATH')) {
 			true
 		);
 
-		$fields = !empty($_GET['fields']) 
+		$fields = !empty($_GET['fields'])
 			? array_map('trim', explode(',', $_GET['fields']))
 			: ['keyword'];
 
@@ -690,8 +711,8 @@ if (defined('PN_JSON_API_PATH')) {
 					$ret[$f] = $n->$f;
 				}
 				return $ret;
-			}, $nodes), 
-			'info' => PN_JSON_API_FULL_DEBUG_INFO 
+			}, $nodes),
+			'info' => PN_JSON_API_FULL_DEBUG_INFO
 				? getDebugInfo()
 				: ['totalRuntime' => getDebugInfo()['totalRuntime']]
 		], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT);
