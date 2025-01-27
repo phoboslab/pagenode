@@ -464,7 +464,7 @@ class PN_Router {
 			return !is_int($key);
 		}, ARRAY_FILTER_USE_KEY);
 
-		if (call_user_func_array($resolver, $params) !== false) {
+		if (call_user_func_array($resolver, array_values($params)) !== false) {
 			return true;
 		};
 
