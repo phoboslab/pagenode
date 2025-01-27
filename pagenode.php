@@ -186,9 +186,9 @@ class PN_Selector {
 		// just year, year & month or year & month & day.
 
 		if (!empty($params['date'])) {
-			$y = $params['date'][0] ?? $params['date'];
-			$m = $params['date'][1] ?? null;
-			$d = $params['date'][2] ?? null;
+			$y = (int)($params['date'][0] ?? $params['date']);
+			$m = (int)($params['date'][1] ?? 0);
+			$d = (int)($params['date'][2] ?? 0);
 			if (preg_match('/(\d{4}).(\d{2}).(\d{2})/', $y, $match)) {
 				$y = $match[1];
 				$m = $match[2];
